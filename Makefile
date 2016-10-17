@@ -6,11 +6,11 @@ VERSION=v1.0
 test:
 	go test ./...
 
-clean: 
+clean:
 	rm -f kube-sqs-autoscaler
 
 compile: clean
-	GOOS=linux go build . -o kube-sqs-autoscaler
+	GOOS=linux go build .
 
 build: compile
 	docker build -t $(IMAGE):$(VERSION) .
