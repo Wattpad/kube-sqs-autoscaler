@@ -11,18 +11,18 @@ import (
 )
 
 var (
-	pollInterval        = *flag.Duration("poll-period", 5*time.Second, "The interval in seconds for checking if scaling is required")
-	scaleDownCoolPeriod = *flag.Duration("scale-down-cool-down", 30*time.Second, "The cool down period for scaling down")
-	scaleUpCoolPeriod   = *flag.Duration("scale-up-cool-down", 10*time.Second, "The cool down period for scaling up")
-	scaleUpMessages     = *flag.Int("scale-up-messages", 100, "Number of sqs messages queued up required for scaling up")
-	scaleDownMessages   = *flag.Int("scale-down-messages", 10, "Number of messages required to scale down")
-	maxPods             = *flag.Int("max-pods", 5, "Max pods that kube-sqs-autoscaler can scale")
-	minPods             = *flag.Int("min-pods", 1, "Min pods that kube-sqs-autoscaler can scale")
-	awsRegion           = *flag.String("aws-region", "us-east-1", "Your AWS region")
+	pollInterval        time.Duration
+	scaleDownCoolPeriod time.Duration
+	scaleUpCoolPeriod   time.Duration
+	scaleUpMessages     int
+	scaleDownMessages   int
+	maxPods             int
+	minPods             int
+	awsRegion           string
 
-	sqsQueueUrl              = *flag.String("sqs-queue-url", "", "The sqs queue url")
-	kubernetesDeploymentName = *flag.String("kubernetes-deployment", "", "Kubernetes Deployment to scale. This field is required")
-	kubernetesNamespace      = *flag.String("kubernetes-namespace", "default", "The namespace your deployment is running in")
+	sqsQueueUrl              string
+	kubernetesDeploymentName string
+	kubernetesNamespace      string
 )
 
 func Run(p *scale.PodAutoScaler, sqs *sqs.SqsClient) {
@@ -41,6 +41,7 @@ func Run(p *scale.PodAutoScaler, sqs *sqs.SqsClient) {
 
 				if numMessages >= scaleUpMessages {
 					if lastScaleUpTime.Add(scaleUpCoolPeriod).After(time.Now()) {
+						log.Info("Waiting for cool down, skipping scale up ")
 						continue
 					}
 
@@ -50,11 +51,11 @@ func Run(p *scale.PodAutoScaler, sqs *sqs.SqsClient) {
 					}
 
 					lastScaleUpTime = time.Now()
-					continue
 				}
 
 				if numMessages <= scaleDownMessages {
 					if lastScaleDownTime.Add(scaleDownCoolPeriod).After(time.Now()) {
+						log.Info("Waiting for cool down, skipping scale down")
 						continue
 					}
 
@@ -64,7 +65,6 @@ func Run(p *scale.PodAutoScaler, sqs *sqs.SqsClient) {
 					}
 
 					lastScaleDownTime = time.Now()
-					continue
 				}
 			}
 		}
@@ -73,10 +73,24 @@ func Run(p *scale.PodAutoScaler, sqs *sqs.SqsClient) {
 }
 
 func main() {
+	flag.DurationVar(&pollInterval, "poll-period", 5*time.Second, "The interval in seconds for checking if scaling is required")
+	flag.DurationVar(&scaleDownCoolPeriod, "scale-down-cool-down", 30*time.Second, "The cool down period for scaling down")
+	flag.DurationVar(&scaleUpCoolPeriod, "scale-up-cool-down", 10*time.Second, "The cool down period for scaling up")
+	flag.IntVar(&scaleUpMessages, "scale-up-messages", 100, "Number of sqs messages queued up required for scaling up")
+	flag.IntVar(&scaleDownMessages, "scale-down-messages", 10, "Number of messages required to scale down")
+	flag.IntVar(&maxPods, "max-pods", 5, "Max pods that kube-sqs-autoscaler can scale")
+	flag.IntVar(&minPods, "min-pods", 1, "Min pods that kube-sqs-autoscaler can scale")
+	flag.StringVar(&awsRegion, "aws-region", "", "Your AWS region")
+
+	flag.StringVar(&sqsQueueUrl, "sqs-queue-url", "", "The sqs queue url")
+	flag.StringVar(&kubernetesDeploymentName, "kubernetes-deployment", "", "Kubernetes Deployment to scale. This field is required")
+	flag.StringVar(&kubernetesNamespace, "kubernetes-namespace", "default", "The namespace your deployment is running in")
+
 	flag.Parse()
 
 	p := scale.NewPodAutoScaler(kubernetesDeploymentName, kubernetesNamespace, maxPods, minPods)
 	sqs := sqs.NewSqsClient(sqsQueueUrl, awsRegion)
 
+	log.Info("Starting kube-sqs-autoscaler")
 	Run(p, sqs)
 }

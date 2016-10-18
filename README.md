@@ -58,10 +58,10 @@ spec:
           - name: ssl-certs
             mountPath: /etc/ssl/certs/ca-certificates.crt
             readOnly: true
-    volumes:
-     - name: ssl-certs
-       hostPath:
-         path: "/etc/ssl/certs/ca-certificates.crt"
+      volumes:
+        - name: ssl-certs
+          hostPath:
+            path: "/etc/ssl/certs/ca-certificates.crt"
 ```
 
 ### Permissions
