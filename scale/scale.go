@@ -3,6 +3,8 @@ package scale
 import (
 	"github.com/pkg/errors"
 
+	log "github.com/Sirupsen/logrus"
+
 	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/client/restclient"
 	kclient "k8s.io/kubernetes/pkg/client/unversioned"
@@ -49,7 +51,7 @@ func (p *PodAutoScaler) ScaleUp() error {
 	currentReplicas := deployment.Spec.Replicas
 
 	if currentReplicas >= int32(p.Max) {
-		return errors.New("Max pods reached, not scaling up")
+		return errors.New("Max pods reached")
 	}
 
 	deployment.Spec.Replicas = currentReplicas + 1
@@ -59,6 +61,7 @@ func (p *PodAutoScaler) ScaleUp() error {
 		return errors.Wrap(err, "Failed to scale up")
 	}
 
+	log.Infof("Scale up successful. Replicas: %d", deployment.Spec.Replicas)
 	return nil
 }
 
@@ -71,16 +74,16 @@ func (p *PodAutoScaler) ScaleDown() error {
 	currentReplicas := deployment.Spec.Replicas
 
 	if currentReplicas <= int32(p.Min) {
-		return errors.New("Min pods reached, not scaling down")
+		return errors.New("Min pods reached")
 	}
 
 	deployment.Spec.Replicas = currentReplicas - 1
 
-	// TODO: use same namespace that kube-sqs-autoscaler is using
-	_, err = p.Client.Deployments(api.NamespaceDefault).Update(deployment)
+	deployment, err = p.Client.Deployments(api.NamespaceDefault).Update(deployment)
 	if err != nil {
 		return errors.Wrap(err, "Failed to scale down")
 	}
 
+	log.Infof("Scale down successful. Replicas: %d", deployment.Spec.Replicas)
 	return nil
 }
