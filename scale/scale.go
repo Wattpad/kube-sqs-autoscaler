@@ -68,7 +68,7 @@ func (p *PodAutoScaler) ScaleUp() error {
 func (p *PodAutoScaler) ScaleDown() error {
 	deployment, err := p.Client.Deployments(api.NamespaceDefault).Get(p.Deployment)
 	if err != nil {
-		return errors.Wrap(err, "Failed to get deployment from kube server, no scale up occured")
+		return errors.Wrap(err, "Failed to get deployment from kube server, no scale down occured")
 	}
 
 	currentReplicas := deployment.Spec.Replicas
