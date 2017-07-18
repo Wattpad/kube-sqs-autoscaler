@@ -79,7 +79,7 @@ func (p *PodAutoScaler) ScaleDown() error {
 
 	deployment.Spec.Replicas = currentReplicas - 1
 
-	deployment, err = p.Client.Deployments(api.NamespaceDefault).Update(deployment)
+	deployment, err = p.Client.Deployments(p.Namespace).Update(deployment)
 	if err != nil {
 		return errors.Wrap(err, "Failed to scale down")
 	}
