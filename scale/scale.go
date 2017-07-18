@@ -5,7 +5,6 @@ import (
 
 	log "github.com/Sirupsen/logrus"
 
-	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/client/restclient"
 	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 )
