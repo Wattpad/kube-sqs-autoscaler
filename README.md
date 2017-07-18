@@ -28,7 +28,7 @@ spec:
     spec:
       containers:
       - name: kube-sqs-autoscaler
-        image: wattpad/kube-sqs-autoscaler:v1.0
+        image: wattpad/kube-sqs-autoscaler:v1.2
         command:
           - /kube-sqs-autoscaler
           - --sqs-queue-url=https://sqs.your_aws_region.amazonaws.com/your_aws_account_number/your_queue_name  # required
