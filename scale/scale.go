@@ -5,7 +5,6 @@ import (
 
 	log "github.com/Sirupsen/logrus"
 
-	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/client/restclient"
 	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 )
@@ -79,7 +78,7 @@ func (p *PodAutoScaler) ScaleDown() error {
 
 	deployment.Spec.Replicas = currentReplicas - 1
 
-	deployment, err = p.Client.Deployments(api.NamespaceDefault).Update(deployment)
+	deployment, err = p.Client.Deployments(p.Namespace).Update(deployment)
 	if err != nil {
 		return errors.Wrap(err, "Failed to scale down")
 	}
