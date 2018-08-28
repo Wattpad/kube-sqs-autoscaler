@@ -49,8 +49,12 @@ func (p *PodAutoScaler) ScaleUp() error {
 
 	currentReplicas := deployment.Spec.Replicas
 
-	if currentReplicas >= int32(p.Max) {
-		return errors.New("Max pods reached")
+  if currentReplicas == int32(p.Max) {
+	  return nil
+	}
+
+  if currentReplicas > int32(p.Max) {
+		return errors.New("More than max pods running")
 	}
 
 	deployment.Spec.Replicas = currentReplicas + 1
@@ -72,8 +76,12 @@ func (p *PodAutoScaler) ScaleDown() error {
 
 	currentReplicas := deployment.Spec.Replicas
 
-	if currentReplicas <= int32(p.Min) {
-		return errors.New("Min pods reached")
+	if currentReplicas == int32(p.Min) {
+	  return nil
+	}
+
+	if currentReplicas < int32(p.Min) {
+		return errors.New("Less than min pods running")
 	}
 
 	deployment.Spec.Replicas = currentReplicas - 1

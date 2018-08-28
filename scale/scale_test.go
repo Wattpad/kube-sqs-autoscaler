@@ -14,7 +14,7 @@ func TestScaleUp(t *testing.T) {
 	p := NewMockPodAutoScaler("test", "test", 5, 1)
 
 	// Scale up replicas until we reach the max (5).
-	// Scale up again and assert that we get an error back when trying to scale up replicas pass the max
+	// Scale up again and assert that we do not get an error but nothing happens
 	err := p.ScaleUp()
 	deployment, _ := p.Client.Deployments("test").Get("test")
 	assert.Nil(t, err)
@@ -25,7 +25,7 @@ func TestScaleUp(t *testing.T) {
 	assert.Equal(t, int32(5), deployment.Spec.Replicas)
 
 	err = p.ScaleUp()
-	assert.NotNil(t, err)
+	assert.Nil(t, err)
 	deployment, _ = p.Client.Deployments("test").Get("test")
 	assert.Equal(t, int32(5), deployment.Spec.Replicas)
 }
@@ -43,7 +43,7 @@ func TestScaleDown(t *testing.T) {
 	assert.Equal(t, int32(1), deployment.Spec.Replicas)
 
 	err = p.ScaleDown()
-	assert.NotNil(t, err)
+	assert.Nil(t, err)
 	deployment, _ = p.Client.Deployments("test").Get("test")
 	assert.Equal(t, int32(1), deployment.Spec.Replicas)
 }
