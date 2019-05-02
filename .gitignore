@@ -1,1 +1,14 @@
-kube-sqs-autoscaler
+.idea/
+.terraform
+*.tfplan
+*.tfstate
+*tfstate*
+*.tfstate.d
+*.tfstate*backup
+*.iml
+.tfenv
+*config-map-aws-auth-*.yaml
+*kubeconfig*
+**/spinnaker_r7_values*yaml
+go.mod
+go.sum
