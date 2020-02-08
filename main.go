@@ -6,8 +6,8 @@ import (
 
 	log "github.com/Sirupsen/logrus"
 
-	"github.com/Wattpad/kube-sqs-autoscaler/scale"
-	"github.com/Wattpad/kube-sqs-autoscaler/sqs"
+	"kube-sqs-autoscaler/scale"
+	"kube-sqs-autoscaler/sqs"
 )
 
 var (
