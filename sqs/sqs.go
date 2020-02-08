@@ -47,3 +47,26 @@ func (s *SqsClient) NumMessages() (int, error) {
 
 	return messages, nil
 }
+
+func (s *SqsClient) NumInflightMessages() (int, error) {
+	params := &sqs.GetQueueAttributesInput{
+		AttributeNames: []*string{aws.String("ApproximateNumberOfMessagesNotVisible")},
+		QueueUrl:       aws.String(s.QueueUrl),
+	}
+
+	
+	out, err := s.Client.GetQueueAttributes(params)
+ 	
+	if err != nil {
+		return 0, errors.Wrap(err, "Failed to get messages in SQS")
+	}
+	
+	
+	messages, err := strconv.Atoi(*out.Attributes["ApproximateNumberOfMessagesNotVisible"])
+  
+	if err != nil {
+		return 0, errors.Wrap(err, "Failed to get number of messages in queue")
+	}
+	
+    return messages, nil
+}
