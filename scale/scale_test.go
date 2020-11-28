@@ -1,116 +1,79 @@
 package scale
 
 import (
-	"github.com/stretchr/testify/assert"
+	"context"
 	"testing"
 
-	"k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/apis/extensions"
-	kclient "k8s.io/kubernetes/pkg/client/unversioned"
-	"k8s.io/kubernetes/pkg/watch"
+	"github.com/stretchr/testify/assert"
+
+	appsv1 "k8s.io/api/apps/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	fake "k8s.io/client-go/kubernetes/fake"
 )
 
 func TestScaleUp(t *testing.T) {
-	p := NewMockPodAutoScaler("test", "test", 5, 1)
+	ctx := context.Background()
+	p := NewMockPodAutoScaler("deploy", "namespace", 5, 1, 3)
 
 	// Scale up replicas until we reach the max (5).
 	// Scale up again and assert that we get an error back when trying to scale up replicas pass the max
-	err := p.ScaleUp()
-	deployment, _ := p.Client.Deployments("test").Get("test")
+	err := p.ScaleUp(ctx)
+	deployment, _ := p.Client.Get(ctx, "deploy", metav1.GetOptions{})
 	assert.Nil(t, err)
-	assert.Equal(t, int32(4), deployment.Spec.Replicas)
-	err = p.ScaleUp()
+	assert.Equal(t, int32(4), *deployment.Spec.Replicas)
+	err = p.ScaleUp(ctx)
 	assert.Nil(t, err)
-	deployment, _ = p.Client.Deployments("test").Get("test")
-	assert.Equal(t, int32(5), deployment.Spec.Replicas)
+	deployment, _ = p.Client.Get(ctx, "deploy", metav1.GetOptions{})
+	assert.Equal(t, int32(5), *deployment.Spec.Replicas)
 
-	err = p.ScaleUp()
+	err = p.ScaleUp(ctx)
 	assert.NotNil(t, err)
-	deployment, _ = p.Client.Deployments("test").Get("test")
-	assert.Equal(t, int32(5), deployment.Spec.Replicas)
+	deployment, _ = p.Client.Get(ctx, "deploy", metav1.GetOptions{})
+	assert.Equal(t, int32(5), *deployment.Spec.Replicas)
 }
 
 func TestScaleDown(t *testing.T) {
-	p := NewMockPodAutoScaler("test", "test", 5, 1)
+	ctx := context.Background()
+	p := NewMockPodAutoScaler("deploy", "namespace", 5, 1, 3)
 
-	err := p.ScaleDown()
+	err := p.ScaleDown(ctx)
 	assert.Nil(t, err)
-	deployment, _ := p.Client.Deployments("test").Get("test")
-	assert.Equal(t, int32(2), deployment.Spec.Replicas)
-	err = p.ScaleDown()
+	deployment, _ := p.Client.Get(ctx, "deploy", metav1.GetOptions{})
+	assert.Equal(t, int32(2), *deployment.Spec.Replicas)
+	err = p.ScaleDown(ctx)
 	assert.Nil(t, err)
-	deployment, _ = p.Client.Deployments("test").Get("test")
-	assert.Equal(t, int32(1), deployment.Spec.Replicas)
+	deployment, _ = p.Client.Get(ctx, "deploy", metav1.GetOptions{})
+	assert.Equal(t, int32(1), *deployment.Spec.Replicas)
 
-	err = p.ScaleDown()
+	err = p.ScaleDown(ctx)
 	assert.NotNil(t, err)
-	deployment, _ = p.Client.Deployments("test").Get("test")
-	assert.Equal(t, int32(1), deployment.Spec.Replicas)
+	deployment, _ = p.Client.Get(ctx, "deploy", metav1.GetOptions{})
+	assert.Equal(t, int32(1), *deployment.Spec.Replicas)
 }
 
-type MockDeployment struct {
-	client *MockKubeClient
-}
-
-type MockKubeClient struct {
-	// stores the state of Deployment as if the api server did
-	Deployment *extensions.Deployment
-}
-
-func (m *MockDeployment) Get(name string) (*extensions.Deployment, error) {
-	return m.client.Deployment, nil
-}
-
-func (m *MockDeployment) Update(deployment *extensions.Deployment) (*extensions.Deployment, error) {
-	m.client.Deployment.Spec.Replicas = deployment.Spec.Replicas
-	return m.client.Deployment, nil
-}
-
-func (m *MockDeployment) List(opts api.ListOptions) (*extensions.DeploymentList, error) {
-	return nil, nil
-}
-
-func (m *MockDeployment) Delete(name string, options *api.DeleteOptions) error {
-	return nil
-}
-
-func (m *MockDeployment) Create(*extensions.Deployment) (*extensions.Deployment, error) {
-	return nil, nil
-}
-
-func (m *MockDeployment) UpdateStatus(*extensions.Deployment) (*extensions.Deployment, error) {
-	return nil, nil
-}
-
-func (m *MockDeployment) Watch(opts api.ListOptions) (watch.Interface, error) {
-	return nil, nil
-}
-
-func (m *MockDeployment) Rollback(*extensions.DeploymentRollback) error {
-	return nil
-}
-
-func (m *MockKubeClient) Deployments(namespace string) kclient.DeploymentInterface {
-	return &MockDeployment{
-		client: m,
-	}
-}
-
-func NewMockKubeClient() *MockKubeClient {
-	return &MockKubeClient{
-		Deployment: &extensions.Deployment{
-			Spec: extensions.DeploymentSpec{
-				Replicas: 3,
-			},
+func NewMockPodAutoScaler(kubernetesDeploymentName string, kubernetesNamespace string, max int, min int, init int) *PodAutoScaler {
+	initialReplicas := int32(init)
+	mock := fake.NewSimpleClientset(&appsv1.Deployment{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:        "deploy",
+			Namespace:   "namespace",
+			Annotations: map[string]string{},
 		},
-	}
-}
-
-func NewMockPodAutoScaler(kubernetesDeploymentName string, kubernetesNamespace string, max int, min int) *PodAutoScaler {
-	mockClient := NewMockKubeClient()
-
+		Spec: appsv1.DeploymentSpec{
+			Replicas: &initialReplicas,
+		},
+	}, &appsv1.Deployment{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:        "deploy-no-scale",
+			Namespace:   "namespace",
+			Annotations: map[string]string{},
+		},
+		Spec: appsv1.DeploymentSpec{
+			Replicas: &initialReplicas,
+		},
+	})
 	return &PodAutoScaler{
-		Client:     mockClient,
+		Client:     mock.AppsV1().Deployments(kubernetesNamespace),
 		Min:        min,
 		Max:        max,
 		Deployment: kubernetesDeploymentName,

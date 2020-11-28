@@ -1,13 +1,14 @@
 package main
 
 import (
+	"context"
 	"flag"
 	"time"
 
-	log "github.com/Sirupsen/logrus"
+	"kube-sqs-autoscaler/scale"
+	"kube-sqs-autoscaler/sqs"
 
-	"github.com/Wattpad/kube-sqs-autoscaler/scale"
-	"github.com/Wattpad/kube-sqs-autoscaler/sqs"
+	log "github.com/sirupsen/logrus"
 )
 
 var (
@@ -26,6 +27,7 @@ var (
 )
 
 func Run(p *scale.PodAutoScaler, sqs *sqs.SqsClient) {
+	ctx := context.Background()
 	lastScaleUpTime := time.Now()
 	lastScaleDownTime := time.Now()
 
@@ -45,7 +47,7 @@ func Run(p *scale.PodAutoScaler, sqs *sqs.SqsClient) {
 						continue
 					}
 
-					if err := p.ScaleUp(); err != nil {
+					if err := p.ScaleUp(ctx); err != nil {
 						log.Errorf("Failed scaling up: %v", err)
 						continue
 					}
@@ -59,7 +61,7 @@ func Run(p *scale.PodAutoScaler, sqs *sqs.SqsClient) {
 						continue
 					}
 
-					if err := p.ScaleDown(); err != nil {
+					if err := p.ScaleDown(ctx); err != nil {
 						log.Errorf("Failed scaling down: %v", err)
 						continue
 					}
