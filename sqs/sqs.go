@@ -22,7 +22,7 @@ type SqsClient struct {
 }
 
 func NewSqsClient(queue string, region string) *SqsClient {
-	svc := sqs.New(session.New(), &aws.Config{Region: aws.String(region)})
+	svc := sqs.New(session.Must(session.NewSession()), aws.NewConfig().WithRegion(region))
 	return &SqsClient{
 		svc,
 		queue,
@@ -31,8 +31,11 @@ func NewSqsClient(queue string, region string) *SqsClient {
 
 func (s *SqsClient) NumMessages() (int, error) {
 	params := &sqs.GetQueueAttributesInput{
-		AttributeNames: []*string{aws.String("ApproximateNumberOfMessages")},
-		QueueUrl:       aws.String(s.QueueUrl),
+		AttributeNames: []*string{
+			aws.String("ApproximateNumberOfMessages"),
+			aws.String("ApproximateNumberOfMessagesDelayed"),
+			aws.String("ApproximateNumberOfMessagesNotVisible")},
+		QueueUrl: aws.String(s.QueueUrl),
 	}
 
 	out, err := s.Client.GetQueueAttributes(params)
@@ -40,10 +43,22 @@ func (s *SqsClient) NumMessages() (int, error) {
 		return 0, errors.Wrap(err, "Failed to get messages in SQS")
 	}
 
-	messages, err := strconv.Atoi(*out.Attributes["ApproximateNumberOfMessages"])
+	approximateNumberOfMessages, err := strconv.Atoi(*out.Attributes["ApproximateNumberOfMessages"])
 	if err != nil {
 		return 0, errors.Wrap(err, "Failed to get number of messages in queue")
 	}
+
+	approximateNumberOfMessagesDelayed, err := strconv.Atoi(*out.Attributes["ApproximateNumberOfMessagesDelayed"])
+	if err != nil {
+		return 0, errors.Wrap(err, "Failed to get number of messages in queue")
+	}
+
+	approximateNumberOfMessagesNotVisible, err := strconv.Atoi(*out.Attributes["ApproximateNumberOfMessagesNotVisible"])
+	if err != nil {
+		return 0, errors.Wrap(err, "Failed to get number of messages in queue")
+	}
+
+	messages := approximateNumberOfMessages + approximateNumberOfMessagesDelayed + approximateNumberOfMessagesNotVisible
 
 	return messages, nil
 }

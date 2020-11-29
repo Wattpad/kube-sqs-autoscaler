@@ -2,6 +2,8 @@ package main
 
 import (
 	"context"
+	"kube-sqs-autoscaler/scale"
+	kubesqs "kube-sqs-autoscaler/sqs"
 	"testing"
 	"time"
 
@@ -12,9 +14,6 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	fake "k8s.io/client-go/kubernetes/fake"
-
-	"kube-sqs-autoscaler/scale"
-	mainsqs "kube-sqs-autoscaler/sqs"
 )
 
 func TestRunReachMinReplicas(t *testing.T) {
@@ -24,7 +23,7 @@ func TestRunReachMinReplicas(t *testing.T) {
 	scaleDownCoolPeriod = 1 * time.Second
 	scaleUpCoolPeriod = 1 * time.Second
 	scaleUpMessages = 100
-	scaleDownMessages = 10
+	scaleDownMessages = 3
 	maxPods = 5
 	minPods = 1
 	awsRegion = "us-east-1"
@@ -38,7 +37,12 @@ func TestRunReachMinReplicas(t *testing.T) {
 
 	go Run(p, s)
 
-	Attributes := map[string]*string{"ApproximateNumberOfMessages": aws.String("10")}
+	Attributes := map[string]*string{
+		"ApproximateNumberOfMessages":           aws.String("1"),
+		"ApproximateNumberOfMessagesDelayed":    aws.String("1"),
+		"ApproximateNumberOfMessagesNotVisible": aws.String("1"),
+	}
+
 	input := &sqs.SetQueueAttributesInput{
 		Attributes: Attributes,
 	}
@@ -55,7 +59,7 @@ func TestRunReachMaxReplicas(t *testing.T) {
 	pollInterval = 1 * time.Second
 	scaleDownCoolPeriod = 1 * time.Second
 	scaleUpCoolPeriod = 1 * time.Second
-	scaleUpMessages = 100
+	scaleUpMessages = 300
 	scaleDownMessages = 10
 	maxPods = 5
 	minPods = 1
@@ -70,7 +74,11 @@ func TestRunReachMaxReplicas(t *testing.T) {
 
 	go Run(p, s)
 
-	Attributes := map[string]*string{"ApproximateNumberOfMessages": aws.String("100")}
+	Attributes := map[string]*string{
+		"ApproximateNumberOfMessages":           aws.String("100"),
+		"ApproximateNumberOfMessagesDelayed":    aws.String("100"),
+		"ApproximateNumberOfMessagesNotVisible": aws.String("100"),
+	}
 
 	input := &sqs.SetQueueAttributesInput{
 		Attributes: Attributes,
@@ -87,7 +95,7 @@ func TestRunScaleUpCoolDown(t *testing.T) {
 	pollInterval = 5 * time.Second
 	scaleDownCoolPeriod = 10 * time.Second
 	scaleUpCoolPeriod = 10 * time.Second
-	scaleUpMessages = 100
+	scaleUpMessages = 300
 	scaleDownMessages = 10
 	maxPods = 5
 	minPods = 1
@@ -102,7 +110,11 @@ func TestRunScaleUpCoolDown(t *testing.T) {
 
 	go Run(p, s)
 
-	Attributes := map[string]*string{"ApproximateNumberOfMessages": aws.String("100")}
+	Attributes := map[string]*string{
+		"ApproximateNumberOfMessages":           aws.String("100"),
+		"ApproximateNumberOfMessagesDelayed":    aws.String("100"),
+		"ApproximateNumberOfMessagesNotVisible": aws.String("100"),
+	}
 
 	input := &sqs.SetQueueAttributesInput{
 		Attributes: Attributes,
@@ -120,7 +132,7 @@ func TestRunScaleDownCoolDown(t *testing.T) {
 	scaleDownCoolPeriod = 10 * time.Second
 	scaleUpCoolPeriod = 10 * time.Second
 	scaleUpMessages = 100
-	scaleDownMessages = 10
+	scaleDownMessages = 3
 	maxPods = 5
 	minPods = 1
 	awsRegion = "us-east-1"
@@ -134,7 +146,11 @@ func TestRunScaleDownCoolDown(t *testing.T) {
 
 	go Run(p, s)
 
-	Attributes := map[string]*string{"ApproximateNumberOfMessages": aws.String("10")}
+	Attributes := map[string]*string{
+		"ApproximateNumberOfMessages":           aws.String("1"),
+		"ApproximateNumberOfMessagesDelayed":    aws.String("1"),
+		"ApproximateNumberOfMessagesNotVisible": aws.String("1"),
+	}
 
 	input := &sqs.SetQueueAttributesInput{
 		Attributes: Attributes,
@@ -191,10 +207,14 @@ func (m *MockSQS) SetQueueAttributes(input *sqs.SetQueueAttributesInput) (*sqs.S
 	return &sqs.SetQueueAttributesOutput{}, nil
 }
 
-func NewMockSqsClient() *mainsqs.SqsClient {
-	Attributes := map[string]*string{"ApproximateNumberOfMessages": aws.String("50")}
+func NewMockSqsClient() *kubesqs.SqsClient {
+	Attributes := map[string]*string{
+		"ApproximateNumberOfMessages":           aws.String("100"),
+		"ApproximateNumberOfMessagesDelayed":    aws.String("100"),
+		"ApproximateNumberOfMessagesNotVisible": aws.String("100"),
+	}
 
-	return &mainsqs.SqsClient{
+	return &kubesqs.SqsClient{
 		Client: &MockSQS{
 			QueueAttributes: &sqs.GetQueueAttributesOutput{
 				Attributes: Attributes,

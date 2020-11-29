@@ -27,7 +27,7 @@ func TestScaleUp(t *testing.T) {
 	assert.Equal(t, int32(5), *deployment.Spec.Replicas)
 
 	err = p.ScaleUp(ctx)
-	assert.NotNil(t, err)
+	assert.Nil(t, err)
 	deployment, _ = p.Client.Get(ctx, "deploy", metav1.GetOptions{})
 	assert.Equal(t, int32(5), *deployment.Spec.Replicas)
 }
@@ -46,7 +46,7 @@ func TestScaleDown(t *testing.T) {
 	assert.Equal(t, int32(1), *deployment.Spec.Replicas)
 
 	err = p.ScaleDown(ctx)
-	assert.NotNil(t, err)
+	assert.Nil(t, err)
 	deployment, _ = p.Client.Get(ctx, "deploy", metav1.GetOptions{})
 	assert.Equal(t, int32(1), *deployment.Spec.Replicas)
 }

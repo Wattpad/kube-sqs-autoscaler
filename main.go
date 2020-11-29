@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"kube-sqs-autoscaler/scale"
-	"kube-sqs-autoscaler/sqs"
+	kubesqs "kube-sqs-autoscaler/sqs"
 
 	log "github.com/sirupsen/logrus"
 )
@@ -26,7 +26,7 @@ var (
 	kubernetesNamespace      string
 )
 
-func Run(p *scale.PodAutoScaler, sqs *sqs.SqsClient) {
+func Run(p *scale.PodAutoScaler, sqs *kubesqs.SqsClient) {
 	ctx := context.Background()
 	lastScaleUpTime := time.Now()
 	lastScaleDownTime := time.Now()
@@ -91,7 +91,7 @@ func main() {
 	flag.Parse()
 
 	p := scale.NewPodAutoScaler(kubernetesDeploymentName, kubernetesNamespace, maxPods, minPods)
-	sqs := sqs.NewSqsClient(sqsQueueUrl, awsRegion)
+	sqs := kubesqs.NewSqsClient(sqsQueueUrl, awsRegion)
 
 	log.Info("Starting kube-sqs-autoscaler")
 	Run(p, sqs)

@@ -12,7 +12,7 @@ func TestNumMessages(t *testing.T) {
 	s := NewMockSqsClient()
 
 	num, err := s.NumMessages()
-	assert.Equal(t, 50, num)
+	assert.Equal(t, 30, num)
 	assert.Nil(t, err)
 }
 
@@ -33,8 +33,11 @@ func (m *MockSQS) SetQueueAttributes(input *sqs.SetQueueAttributesInput) (*sqs.S
 }
 
 func NewMockSqsClient() *SqsClient {
-	Attributes := make(map[string]*string)
-	Attributes["ApproximateNumberOfMessages"] = aws.String("50")
+	Attributes := map[string]*string{
+		"ApproximateNumberOfMessages":           aws.String("10"),
+		"ApproximateNumberOfMessagesDelayed":    aws.String("10"),
+		"ApproximateNumberOfMessagesNotVisible": aws.String("10"),
+	}
 
 	return &SqsClient{
 		Client: &MockSQS{
