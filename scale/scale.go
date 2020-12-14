@@ -19,14 +19,16 @@ var (
 )
 
 type PodAutoScaler struct {
-	Client     typedappv1.DeploymentInterface
-	Max        int
-	Min        int
-	Deployment string
-	Namespace  string
+	Client        typedappv1.DeploymentInterface
+	Max           int
+	Min           int
+	ScaleUpPods   int
+	ScaleDownPods int
+	Deployment    string
+	Namespace     string
 }
 
-func NewPodAutoScaler(kubernetesDeploymentName string, kubernetesNamespace string, max int, min int) *PodAutoScaler {
+func NewPodAutoScaler(kubernetesDeploymentName string, kubernetesNamespace string, max, min, scaleUpPods, scaleDownPods int) *PodAutoScaler {
 	kubeConfigPath = os.Getenv("KUBE_CONFIG_PATH")
 	config, err := clientcmd.BuildConfigFromFlags("", kubeConfigPath)
 	if err != nil {
@@ -39,11 +41,13 @@ func NewPodAutoScaler(kubernetesDeploymentName string, kubernetesNamespace strin
 	}
 
 	return &PodAutoScaler{
-		Client:     k8sClient.AppsV1().Deployments(kubernetesNamespace),
-		Min:        min,
-		Max:        max,
-		Deployment: kubernetesDeploymentName,
-		Namespace:  kubernetesNamespace,
+		Client:        k8sClient.AppsV1().Deployments(kubernetesNamespace),
+		Min:           min,
+		Max:           max,
+		ScaleUpPods:   scaleUpPods,
+		ScaleDownPods: scaleDownPods,
+		Deployment:    kubernetesDeploymentName,
+		Namespace:     kubernetesNamespace,
 	}
 }
 
@@ -59,7 +63,10 @@ func (p *PodAutoScaler) ScaleUp(ctx context.Context) error {
 		log.Infof("More than max pods running. No scale up. Replicas: %d", *deployment.Spec.Replicas)
 		return nil
 	}
-	nextReplicas := *currentReplicas + int32(1)
+	nextReplicas := *currentReplicas + int32(p.ScaleUpPods)
+	if nextReplicas > int32(p.Max) {
+		nextReplicas = int32(p.Max)
+	}
 	deployment.Spec.Replicas = &nextReplicas
 
 	_, err = p.Client.Update(ctx, deployment, metav1.UpdateOptions{})
@@ -84,7 +91,10 @@ func (p *PodAutoScaler) ScaleDown(ctx context.Context) error {
 		return nil
 	}
 
-	nextReplicas := *currentReplicas - int32(1)
+	nextReplicas := *currentReplicas - int32(p.Min)
+	if nextReplicas < int32(p.Min) {
+		nextReplicas = int32(p.Min)
+	}
 	deployment.Spec.Replicas = &nextReplicas
 
 	_, err = p.Client.Update(ctx, deployment, metav1.UpdateOptions{})

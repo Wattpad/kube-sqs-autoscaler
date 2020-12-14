@@ -17,6 +17,8 @@ var (
 	scaleUpCoolPeriod   time.Duration
 	scaleUpMessages     int
 	scaleDownMessages   int
+	scaleUpPods         int
+	scaleDownPods       int
 	maxPods             int
 	minPods             int
 	awsRegion           string
@@ -79,7 +81,9 @@ func main() {
 	flag.DurationVar(&scaleDownCoolPeriod, "scale-down-cool-down", 30*time.Second, "The cool down period for scaling down")
 	flag.DurationVar(&scaleUpCoolPeriod, "scale-up-cool-down", 10*time.Second, "The cool down period for scaling up")
 	flag.IntVar(&scaleUpMessages, "scale-up-messages", 100, "Number of sqs messages queued up required for scaling up")
-	flag.IntVar(&scaleDownMessages, "scale-down-messages", 10, "Number of messages required to scale down")
+	flag.IntVar(&scaleDownMessages, "scale-down-messages", 10, "Number of messages required to scaling down")
+	flag.IntVar(&scaleUpPods, "scale-up-pods", 1, "Number of Pod in scaling up")
+	flag.IntVar(&scaleDownPods, "scale-down-pods", 1, "Number of Pod in scaling down")
 	flag.IntVar(&maxPods, "max-pods", 5, "Max pods that kube-sqs-autoscaler can scale")
 	flag.IntVar(&minPods, "min-pods", 1, "Min pods that kube-sqs-autoscaler can scale")
 	flag.StringVar(&awsRegion, "aws-region", "", "Your AWS region")
@@ -90,7 +94,7 @@ func main() {
 
 	flag.Parse()
 
-	p := scale.NewPodAutoScaler(kubernetesDeploymentName, kubernetesNamespace, maxPods, minPods)
+	p := scale.NewPodAutoScaler(kubernetesDeploymentName, kubernetesNamespace, maxPods, minPods, scaleUpPods, scaleDownPods)
 	sqs := kubesqs.NewSqsClient(sqsQueueUrl, awsRegion)
 
 	log.Info("Starting kube-sqs-autoscaler")
