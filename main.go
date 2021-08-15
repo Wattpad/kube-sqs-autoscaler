@@ -6,8 +6,8 @@ import (
 
 	log "github.com/Sirupsen/logrus"
 
-	"github.com/Wattpad/kube-sqs-autoscaler/scale"
-	"github.com/Wattpad/kube-sqs-autoscaler/sqs"
+	"kube-sqs-autoscaler/scale"
+	"kube-sqs-autoscaler/sqs"
 )
 
 var (
@@ -33,7 +33,13 @@ func Run(p *scale.PodAutoScaler, sqs *sqs.SqsClient) {
 		select {
 		case <-time.After(pollInterval):
 			{
-				numMessages, err := sqs.NumMessages()
+				numViMessages, err := sqs.NumMessages()
+  		                log.Info("Total no. of visible messages: ",numViMessages)
+    		                numinMessages, err := sqs.NumInflightMessages()
+				log.Info("Total no. of inflight messages: ",numinMessages)
+				numMessages := numinMessages + numViMessages
+				log.Info("Total messages for processing: ",numMessages)
+				
 				if err != nil {
 					log.Errorf("Failed to get SQS messages: %v", err)
 					continue

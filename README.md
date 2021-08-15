@@ -1,5 +1,5 @@
 # kube-sqs-autoscaler
-Kubernetes pod autoscaler based on queue size in AWS SQS. It periodically retrieves the number of messages in your queue and scales pods accordingly.
+Kubernetes pod autoscaler based on queue size in AWS SQS. It periodically retrieves the number of messages(Visible and inflight) in your queue and scales pods accordingly.
 
 ## Setting up
 Setting up kube-sqs-autoscaler requires two steps:
@@ -28,7 +28,7 @@ spec:
     spec:
       containers:
       - name: kube-sqs-autoscaler
-        image: wattpad/kube-sqs-autoscaler:v1.2.1
+        image: Build and add your tag here
         command:
           - /kube-sqs-autoscaler
           - --sqs-queue-url=https://sqs.your_aws_region.amazonaws.com/your_aws_account_number/your_queue_name  # required
